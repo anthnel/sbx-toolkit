@@ -19,6 +19,15 @@ agent = "claude"
 #   localhost:5000/sbx-toolkit:mise-claude-code@sha256:...
 template = "localhost:5000/sbx-toolkit:mise-claude-code"
 
+# ── kit ───────────────────────────────────────────────────────────────────────
+
+# Optional sbx kit (mixin) to apply on every sandbox startup.
+# Use the bundled statusline kit to restore Claude Code's statusLine setting
+# even after it gets overwritten during a session.
+#
+# Set this to the installed kit path after running install.sh:
+# kit = "~/.local/share/sbx-toolkit/kits/statusline"
+
 # ── network ───────────────────────────────────────────────────────────────────
 
 # Base network policy.

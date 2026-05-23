@@ -16,6 +16,10 @@
 #   --tag <image:tag>        Output image tag (auto-generated if omitted)
 #   --config <path>          Agent config dir to bake in (e.g. ~/.claude)
 #   --config-target <path>   Where to place config in image (default: /home/agent/.claude)
+#   --statusline <mode>      inherit|create|off — how to handle the statusline script (default: create)
+#                              inherit: use statusline.py from --config dir; skip if absent
+#                              create:  use --config dir if available, else inject bundled script
+#                              off:     do not configure statusline at all
 #   --registry <host:port>   Registry to push to (default: localhost:5000)
 #   --no-push                Build only, don't push to registry
 #   --dry-run                Print what would happen without doing it
@@ -33,6 +37,7 @@ AGENT="claude-code"
 TAG=""
 CONFIG_PATH=""
 CONFIG_TARGET="/home/agent/.claude"
+STATUSLINE_MODE="create"
 REGISTRY="localhost:5000"
 NO_PUSH=false
 DRY_RUN=false
@@ -67,6 +72,17 @@ while [[ $# -gt 0 ]]; do
 		;;
 	--registry)
 		REGISTRY="$2"
+		shift 2
+		;;
+	--statusline)
+		STATUSLINE_MODE="$2"
+		case "$STATUSLINE_MODE" in
+		inherit | create | off) ;;
+		*)
+			echo "ERROR: --statusline must be inherit, create, or off" >&2
+			exit 1
+			;;
+		esac
 		shift 2
 		;;
 	--no-push)
@@ -128,7 +144,7 @@ fi
 
 # ── ensure local registry is running ─────────────────────────────────────────
 
-if [[ "$NO_PUSH" == false ]] && echo "$REGISTRY" | grep -qE '^localhost:'; then
+if [[ "$NO_PUSH" == false ]] && [[ "$DRY_RUN" == false ]] && echo "$REGISTRY" | grep -qE '^localhost:'; then
 	PORT="${REGISTRY#*:}"
 	REGISTRY_CONTAINER=""
 
@@ -183,6 +199,9 @@ fi
 
 # ── inject statusline ─────────────────────────────────────────────────────────
 
+STATUSLINE_IN_CONFIG="$BUILD_DIR/agent-config/statusline.py"
+
+# Bundled fallback (repo checkout or installed copy)
 STATUSLINE_SRC=""
 for candidate in "$SCRIPT_DIR/scripts/statusline.py" "$DATA_DIR/scripts/statusline.py"; do
 	if [[ -f "$candidate" ]]; then
@@ -191,23 +210,25 @@ for candidate in "$SCRIPT_DIR/scripts/statusline.py" "$DATA_DIR/scripts/statusli
 	fi
 done
 
-if [[ -n "$STATUSLINE_SRC" ]]; then
-	cp "$STATUSLINE_SRC" "$BUILD_DIR/agent-config/statusline.py"
-	SETTINGS="$BUILD_DIR/agent-config/settings.json"
-	[[ -f "$SETTINGS" ]] || echo '{}' >"$SETTINGS"
-	PYTHON=""
+_patch_statusline_settings() {
+	local settings="$BUILD_DIR/agent-config/settings.json"
+	[[ -f "$settings" ]] || echo '{}' >"$settings"
+	local python=""
 	for _py in python3 python python3.exe python.exe; do
 		if command -v "$_py" >/dev/null 2>&1 && "$_py" --version >/dev/null 2>&1; then
-			PYTHON="$_py"
+			python="$_py"
 			break
 		fi
 	done
-	[[ -z "$PYTHON" ]] && { echo "WARNING: python not found — statusline settings not patched" >&2; }
+	if [[ -z "$python" ]]; then
+		echo "WARNING: python not found — statusline settings not patched" >&2
+		return
+	fi
 	# Strip any leading slash from CONFIG_TARGET to avoid MINGW64/Git Bash
 	# converting the Unix-style absolute path before it reaches python.exe.
 	# The leading slash is reattached inside Python.
-	CT_REL="${CONFIG_TARGET#/}"
-	"$PYTHON" - "$SETTINGS" "$CT_REL" <<'PYEOF'
+	local ct_rel="${CONFIG_TARGET#/}"
+	"$python" - "$settings" "$ct_rel" <<'PYEOF'
 import sys, json
 path, ct_rel = sys.argv[1], sys.argv[2]
 cmd = "python3 /" + ct_rel + "/statusline.py"
@@ -221,9 +242,30 @@ with open(path, "w") as f:
     json.dump(data, f, indent=2)
 PYEOF
 	echo "→ statusline configured ($CONFIG_TARGET/statusline.py)"
-else
-	echo "WARNING: scripts/statusline.py not found — statusline not configured" >&2
-fi
+}
+
+case "$STATUSLINE_MODE" in
+off)
+	echo "→ statusline: off (skipped)"
+	;;
+inherit)
+	if [[ -f "$STATUSLINE_IN_CONFIG" ]]; then
+		_patch_statusline_settings
+	else
+		echo "WARNING: --statusline=inherit but no statusline.py found in config dir — skipping" >&2
+	fi
+	;;
+create)
+	if [[ ! -f "$STATUSLINE_IN_CONFIG" ]]; then
+		if [[ -n "$STATUSLINE_SRC" ]]; then
+			cp "$STATUSLINE_SRC" "$STATUSLINE_IN_CONFIG"
+		else
+			echo "WARNING: scripts/statusline.py not found — statusline not configured" >&2
+		fi
+	fi
+	[[ -f "$STATUSLINE_IN_CONFIG" ]] && _patch_statusline_settings
+	;;
+esac
 
 # ── summary ───────────────────────────────────────────────────────────────────
 

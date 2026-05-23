@@ -12,6 +12,7 @@ TEMPLATE_FILES=(
 	"templates/base/Dockerfile"
 	"templates/mise/Dockerfile"
 	"scripts/statusline.py"
+	"kits/statusline/spec.yaml"
 )
 DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/sbx-toolkit"
 

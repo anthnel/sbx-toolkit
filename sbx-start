@@ -67,6 +67,9 @@ AGENT=$(toml_get "$CONFIG_FILE" "agent")
 TEMPLATE=$(toml_get "$CONFIG_FILE" "template")
 NETWORK_POLICY=$(toml_get "$CONFIG_FILE" "network_policy")
 BRANCH=$(toml_get "$CONFIG_FILE" "branch")
+KIT=$(toml_get "$CONFIG_FILE" "kit")
+# Expand ~ in kit path (TOML does not expand shell variables)
+[[ -n "$KIT" ]] && KIT="${KIT/#\~/$HOME}"
 
 [[ -n "$AGENT" ]] || die "Missing 'agent' in $CONFIG_FILE"
 [[ -n "$TEMPLATE" ]] || die "Missing 'template' in $CONFIG_FILE"
@@ -136,6 +139,7 @@ done < <(toml_get_array "$CONFIG_FILE" "blocked_domains")
 CMD=(sbx run --template "$TEMPLATE")
 
 [[ -n "$BRANCH" ]] && CMD+=(--branch "$BRANCH")
+[[ -n "$KIT" ]] && CMD+=(--kit "$KIT")
 
 CMD+=("$AGENT" ".")
 
@@ -148,6 +152,7 @@ done < <(toml_get_array "$CONFIG_FILE" "extra_workspaces")
 echo "→ Starting sandbox"
 echo "  agent:          $AGENT"
 echo "  template:       $TEMPLATE"
+echo "  kit:            ${KIT:-none}"
 echo "  network policy: $NETWORK_POLICY"
 echo "  branch:         ${BRANCH:-none (direct mode)}"
 echo ""

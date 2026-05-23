@@ -1,0 +1,25 @@
+schemaVersion: "1"
+kind: mixin
+name: sbx-statusline
+displayName: SBX Claude Statusline
+description: >
+  Restores the Claude Code statusLine setting on every sandbox startup.
+  Pairs with sbx-setup --statusline to keep your custom statusline active
+  even after Claude Code rewrites its settings during a session.
+
+commands:
+  startup:
+    - command:
+        - python3
+        - "-c"
+        - |
+          import json, os
+          p = os.path.expanduser("~/.claude/settings.json")
+          try:
+              d = json.load(open(p))
+          except Exception:
+              d = {}
+          d["statusLine"] = {"type": "command", "command": "python3 /home/agent/.claude/statusline.py"}
+          open(p, "w").write(json.dumps(d, indent=2))
+      user: "1000"
+      description: Restore statusLine in Claude Code settings
