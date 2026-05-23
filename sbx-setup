@@ -203,9 +203,10 @@ if [[ -n "$STATUSLINE_SRC" ]]; then
 		fi
 	done
 	[[ -z "$PYTHON" ]] && { echo "WARNING: python not found — statusline settings not patched" >&2; }
-	MSYS_NO_PATHCONV=1 "$PYTHON" - "$SETTINGS" "$CONFIG_TARGET/statusline.py" <<'PYEOF'
-import sys, json
-path, cmd_path = sys.argv[1], sys.argv[2]
+	SBX_CONFIG_TARGET="$CONFIG_TARGET" "$PYTHON" - "$SETTINGS" <<'PYEOF'
+import sys, json, os
+path = sys.argv[1]
+cmd_path = os.environ['SBX_CONFIG_TARGET'] + '/statusline.py'
 try:
     with open(path) as f:
         data = json.load(f)
