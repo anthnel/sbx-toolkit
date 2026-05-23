@@ -181,6 +181,37 @@ if [[ -d "$BUILD_DIR/agent-config" ]]; then
 	fi
 fi
 
+# ── inject statusline ─────────────────────────────────────────────────────────
+
+STATUSLINE_SRC=""
+for candidate in "$SCRIPT_DIR/scripts/statusline.py" "$DATA_DIR/scripts/statusline.py"; do
+	if [[ -f "$candidate" ]]; then
+		STATUSLINE_SRC="$candidate"
+		break
+	fi
+done
+
+if [[ -n "$STATUSLINE_SRC" ]]; then
+	cp "$STATUSLINE_SRC" "$BUILD_DIR/agent-config/statusline.py"
+	SETTINGS="$BUILD_DIR/agent-config/settings.json"
+	[[ -f "$SETTINGS" ]] || echo '{}' >"$SETTINGS"
+	python3 - "$SETTINGS" "$CONFIG_TARGET/statusline.py" <<'PYEOF'
+import sys, json
+path, cmd_path = sys.argv[1], sys.argv[2]
+try:
+    with open(path) as f:
+        data = json.load(f)
+except Exception:
+    data = {}
+data["statusLine"] = {"type": "command", "command": f"python3 {cmd_path}"}
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+PYEOF
+	echo "→ statusline configured ($CONFIG_TARGET/statusline.py)"
+else
+	echo "WARNING: scripts/statusline.py not found — statusline not configured" >&2
+fi
+
 # ── summary ───────────────────────────────────────────────────────────────────
 
 echo "→ Setting up local sandbox environment"

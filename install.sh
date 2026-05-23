@@ -10,6 +10,7 @@ TEMPLATE_FILES=(
 	"templates/README.md"
 	"templates/base/Dockerfile"
 	"templates/mise/Dockerfile"
+	"scripts/statusline.py"
 )
 DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/sbx-toolkit"
 
