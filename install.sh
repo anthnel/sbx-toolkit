@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # install.sh — installs sbx-start and sbx-setup from GitHub
 # Usage: curl -fsSL https://raw.githubusercontent.com/your-org/sbx-toolkit/main/install.sh | bash
+# Usage (fork/branch): curl -fsSL <url> | bash -s -- <repo> <branch>
 set -euo pipefail
 
-REPO="${SBX_REPO:-maxkrivich/sbx-toolkit}"
-BRANCH="${SBX_BRANCH:-main}"
+REPO="${1:-${SBX_REPO:-maxkrivich/sbx-toolkit}}"
+BRANCH="${2:-${SBX_BRANCH:-main}}"
 BINARIES=("sbx-start" "sbx-setup")
 TEMPLATE_FILES=(
 	"templates/README.md"
