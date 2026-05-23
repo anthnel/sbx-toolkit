@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import json, subprocess, sys
 
+sys.stdout.reconfigure(encoding="utf-8")
+
 SEP = " · "
 ESC = "\033"
 
