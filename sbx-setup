@@ -203,7 +203,7 @@ if [[ -n "$STATUSLINE_SRC" ]]; then
 		fi
 	done
 	[[ -z "$PYTHON" ]] && { echo "WARNING: python not found — statusline settings not patched" >&2; }
-	"$PYTHON" - "$SETTINGS" "$CONFIG_TARGET/statusline.py" <<'PYEOF'
+	MSYS_NO_PATHCONV=1 "$PYTHON" - "$SETTINGS" "$CONFIG_TARGET/statusline.py" <<'PYEOF'
 import sys, json
 path, cmd_path = sys.argv[1], sys.argv[2]
 try:
