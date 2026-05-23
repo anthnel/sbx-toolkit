@@ -203,16 +203,15 @@ if [[ -n "$STATUSLINE_SRC" ]]; then
 		fi
 	done
 	[[ -z "$PYTHON" ]] && { echo "WARNING: python not found — statusline settings not patched" >&2; }
-	SBX_CONFIG_TARGET="$CONFIG_TARGET" "$PYTHON" - "$SETTINGS" <<'PYEOF'
-import sys, json, os
+	"$PYTHON" - "$SETTINGS" <<PYEOF
+import sys, json
 path = sys.argv[1]
-cmd_path = os.environ['SBX_CONFIG_TARGET'] + '/statusline.py'
 try:
     with open(path) as f:
         data = json.load(f)
 except Exception:
     data = {}
-data["statusLine"] = {"type": "command", "command": f"python3 {cmd_path}"}
+data["statusLine"] = {"type": "command", "command": "python3 ${CONFIG_TARGET}/statusline.py"}
 with open(path, "w") as f:
     json.dump(data, f, indent=2)
 PYEOF
