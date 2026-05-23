@@ -17,7 +17,10 @@ ARG AGENT=claude-code
 FROM docker/sandbox-templates:${AGENT}
 
 ARG AGENT=claude-code
-ARG CONFIG_TARGET=/home/agent/.claude
+# CONFIG_TARGET is intentionally relative (no leading /) so MINGW64/Git Bash on
+# Windows doesn't mangle it during docker --build-arg passing. The leading
+# slash is added in the COPY destination below.
+ARG CONFIG_TARGET=home/agent/.claude
 
 LABEL org.opencontainers.image.description="sbx-toolkit mise template (${AGENT})"
 
@@ -39,4 +42,4 @@ RUN mkdir -p ~/.config/mise \
 # Copy optional agent config (e.g. ~/.claude, ~/.codex).
 # The build script normalises the source to agent-config/ in the build context.
 # If no config is provided, this is an empty directory and has no effect.
-COPY --chown=agent:agent agent-config/ ${CONFIG_TARGET}/
+COPY --chown=agent:agent agent-config/ /${CONFIG_TARGET}/

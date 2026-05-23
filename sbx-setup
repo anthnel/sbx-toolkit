@@ -203,15 +203,20 @@ if [[ -n "$STATUSLINE_SRC" ]]; then
 		fi
 	done
 	[[ -z "$PYTHON" ]] && { echo "WARNING: python not found — statusline settings not patched" >&2; }
-	"$PYTHON" - "$SETTINGS" <<PYEOF
+	# Strip any leading slash from CONFIG_TARGET to avoid MINGW64/Git Bash
+	# converting the Unix-style absolute path before it reaches python.exe.
+	# The leading slash is reattached inside Python.
+	CT_REL="${CONFIG_TARGET#/}"
+	"$PYTHON" - "$SETTINGS" "$CT_REL" <<'PYEOF'
 import sys, json
-path = sys.argv[1]
+path, ct_rel = sys.argv[1], sys.argv[2]
+cmd = "python3 /" + ct_rel + "/statusline.py"
 try:
     with open(path) as f:
         data = json.load(f)
 except Exception:
     data = {}
-data["statusLine"] = {"type": "command", "command": "python3 ${CONFIG_TARGET}/statusline.py"}
+data["statusLine"] = {"type": "command", "command": cmd}
 with open(path, "w") as f:
     json.dump(data, f, indent=2)
 PYEOF
@@ -221,6 +226,10 @@ else
 fi
 
 # ── summary ───────────────────────────────────────────────────────────────────
+
+# Relative form (no leading /) for docker --build-arg to avoid MINGW64
+# path conversion. The Dockerfile prepends / in the COPY destination.
+CONFIG_TARGET_REL="${CONFIG_TARGET#/}"
 
 echo "→ Setting up local sandbox environment"
 echo "  template:      $DOCKERFILE_PATH"
@@ -232,7 +241,7 @@ echo ""
 if [[ "$DRY_RUN" == true ]]; then
 	echo "docker build \\"
 	echo "  --build-arg AGENT=$AGENT \\"
-	echo "  --build-arg CONFIG_TARGET=$CONFIG_TARGET \\"
+	echo "  --build-arg CONFIG_TARGET=$CONFIG_TARGET_REL \\"
 	echo "  -t $TAG \\"
 	echo "  $BUILD_DIR"
 	[[ "$NO_PUSH" == false ]] && echo "docker push $TAG"
@@ -248,7 +257,7 @@ fi
 
 docker build \
 	--build-arg AGENT="$AGENT" \
-	--build-arg CONFIG_TARGET="$CONFIG_TARGET" \
+	--build-arg CONFIG_TARGET="$CONFIG_TARGET_REL" \
 	-t "$TAG" \
 	"$BUILD_DIR"
 
