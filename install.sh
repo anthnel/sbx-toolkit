@@ -3,8 +3,8 @@
 # Usage: curl -fsSL https://raw.githubusercontent.com/your-org/sbx-toolkit/main/install.sh | bash
 set -euo pipefail
 
-REPO="maxkrivich/sbx-toolkit"
-BRANCH="main"
+REPO="${SBX_REPO:-maxkrivich/sbx-toolkit}"
+BRANCH="${SBX_BRANCH:-main}"
 BINARIES=("sbx-start" "sbx-setup")
 TEMPLATE_FILES=(
 	"templates/README.md"
